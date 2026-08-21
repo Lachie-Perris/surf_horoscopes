@@ -35,7 +35,8 @@ def make_forecast_charts(forecast, destination):
     for location, group in forecast.groupby("location"):
         g = group.sort_values("valid_time_utc").copy()
         g["local_time"] = pd.to_datetime(g.valid_time_utc, utc=True).dt.tz_convert(LOCAL_TZ)
-        fig = plt.figure(figsize=(14, 8), facecolor=BG)
+        # Web-friendly canvas: approximately 1200 x 720 px at the saved DPI.
+        fig = plt.figure(figsize=(10, 6), facecolor=BG)
         grid = fig.add_gridspec(3, 1, height_ratios=[4.4, .8, 2.3], hspace=.08)
         wave_ax = fig.add_subplot(grid[0]); direction_ax = fig.add_subplot(grid[1], sharex=wave_ax)
         wind_ax = fig.add_subplot(grid[2], sharex=wave_ax)
@@ -72,6 +73,6 @@ def make_forecast_charts(forecast, destination):
         fig.subplots_adjust(left=.07, right=.93, top=.88, bottom=.10)
         slug = location.lower().replace(" beach", "").replace(" ", "_")
         path = destination / f"forecast_{slug}.png"
-        fig.savefig(path, dpi=150, bbox_inches="tight", facecolor=BG)
+        fig.savefig(path, dpi=120, bbox_inches="tight", facecolor=BG)
         plt.close(fig); paths[location] = path
     return paths
