@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Surf Horoscopes — Read the Tide Within</title>
+  <meta name="description" content="Daily surf horoscopes for Bondi and Byron, written from swell, period, wind and the zodiac.">
+  <meta property="og:title" content="Surf Horoscopes">
+  <meta property="og:description" content="Read the tide within.">
+  <meta property="og:image" content="og.png">
+  <link rel="icon" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="wordmark" href="#top" aria-label="Surf Horoscopes home"><span class="moon-mark">◐</span><span>SURF<br>HOROSCOPES</span></a>
+    <p class="edition">DAILY OCEAN DIVINATION<br><span id="edition-date">21 AUG 2026</span></p>
+  </header>
+
+  <main id="top">
+    <section class="intro">
+      <div class="intro-orbit" aria-hidden="true"><span>✦</span></div>
+      <p class="overline">GFS WAVE × THE ZODIAC</p>
+      <h1>Read the tide<br><em>within.</em></h1>
+      <p class="intro-copy">A daily celestial reading of the ocean—translated from wave height, period and wind for the sign you move through water with.</p>
+      <a class="begin" href="#reading">Reveal your reading <span>↓</span></a>
+    </section>
+
+    <section class="controls" id="reading" aria-label="Choose your reading">
+      <div class="location-tabs" role="tablist" aria-label="Surf location">
+        <button class="location-tab active" role="tab" aria-selected="true" data-location="bondi"><span>01</span> Bondi</button>
+        <button class="location-tab" role="tab" aria-selected="false" data-location="byron"><span>02</span> Byron</button>
+      </div>
+      <div class="sign-picker">
+        <div><p class="overline">CHOOSE YOUR SIGN</p><h2>What constellation<br>guides you?</h2></div>
+        <div class="sign-grid" role="listbox" aria-label="Star sign" id="sign-grid"></div>
+      </div>
+    </section>
+
+    <section class="reading-shell" aria-live="polite">
+      <div class="reading-card" id="reading-card">
+        <div class="sigil-panel">
+          <span class="sign-index" id="sign-index">01 / 12</span>
+          <div class="zodiac-glyph" id="zodiac-glyph">♈</div>
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <p id="element-label">FIRE · CARDINAL</p>
+        </div>
+        <div class="message-panel">
+          <div class="reading-meta"><span id="location-label">BONDI BEACH</span><span id="sign-dates">MAR 21 — APR 19</span></div>
+          <p class="overline">YOUR OCEAN READING</p>
+          <h2 id="reading-title">Fire Meets<br>Moving Water</h2>
+          <p class="reading-copy" id="reading-copy"></p>
+          <blockquote><span>✦</span><p id="mantra"></p></blockquote>
+        </div>
+      </div>
+    </section>
+
+    <section class="conditions-panel">
+      <div class="conditions-heading"><p class="overline">THE OCEAN, NOW</p><h2 id="conditions-location">Bondi Beach</h2></div>
+      <div class="condition"><span>WAVE HEIGHT</span><strong id="wave-height">0.7</strong><small>metres Hs</small></div>
+      <div class="condition"><span>PRIMARY PERIOD</span><strong id="wave-period">06</strong><small>seconds</small></div>
+      <div class="condition"><span>LOCAL WIND</span><strong id="wind-direction">NE</strong><small id="wind-speed">3.4 m/s · unfavourable</small></div>
+      <p class="conditions-note" id="conditions-note"></p>
+    </section>
+
+    <section class="about">
+      <p class="overline">THE METHOD</p><div><h2>Forecast as fact.<br>Horoscope as play.</h2><p>The ocean conditions come from offshore model guidance. The reading is an imaginative reflection—not a safety forecast. Check local conditions and know your limits before entering the water.</p></div>
+    </section>
+  </main>
+
+  <footer><a class="wordmark" href="#top"><span class="moon-mark">◐</span><span>SURF<br>HOROSCOPES</span></a><p>Made between the stars<br>and the southern sea.</p><a href="#top">RETURN TO THE SKY ↑</a></footer>
+  <script src="app.js"></script>
+</body>
+</html>
