@@ -40,4 +40,6 @@ python build_site.py --demo
 
 Then open `site/index.html`. On GitHub, open **Settings → Pages**, choose **GitHub
 Actions** as the source, and manually run **Update surf horoscopes** from the Actions
-tab. The same workflow refreshes the live GFS Wave data four times daily.
+tab. The same workflow refreshes the live five-day GFS Wave data four times daily.
+The generated `data.html` page displays separate Bondi and Byron charts for wave
+height, primary period, swell direction, wind speed, and wind direction.

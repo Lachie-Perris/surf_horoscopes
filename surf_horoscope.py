@@ -49,16 +49,16 @@ SPOT_RULES = {
 
 LOCATION_OPENINGS = {
     "Bondi Beach": (
-        "Bondi's eastern edge is carrying a {mood} mood today.",
-        "At Bondi, the ocean arrives with a {mood} but unmistakable presence.",
-        "The water off Bondi feels {mood}, asking the city to match its tempo.",
-        "Bondi wakes to an ocean with a distinctly {mood} character.",
+        "The eastern edge is carrying a {mood} mood today.",
+        "The ocean arrives with a {mood} but unmistakable presence.",
+        "The water feels {mood}, asking the city to match its tempo.",
+        "The day wakes to an ocean with a distinctly {mood} character.",
     ),
     "Byron Bay": (
-        "Around Byron's headland, the sea settles into a {mood} rhythm.",
-        "Byron's open horizon holds a {mood} ocean today.",
-        "At Byron, the water carries a {mood} energy around the bay.",
-        "The sea off Byron feels {mood}, moving to its own spacious tempo.",
+        "Around the headland, the sea settles into a {mood} rhythm.",
+        "The open horizon holds a {mood} ocean today.",
+        "The water carries a {mood} energy around the bay.",
+        "The sea feels {mood}, moving to its own spacious tempo.",
     ),
 }
 FEELING_LINES = (
@@ -91,14 +91,14 @@ HEADLINE_PATTERNS = {
 }
 HEADLINE_SUBJECTS = {
     "Bondi Beach": {
-        "light": ("Bondi's Open {mood} Face", "the {mood} Eastern Pulse"),
-        "clean": ("Bondi's Clean {mood} Pulse", "the Groomed {mood} Lines"),
-        "messy": ("Shape in Bondi's {mood} Static", "the Restless {mood} Edge"),
+        "light": ("the Open {mood} Face", "the {mood} Eastern Pulse"),
+        "clean": ("the Clean {mood} Pulse", "the Groomed {mood} Lines"),
+        "messy": ("Shape in the {mood} Static", "the Restless {mood} Edge"),
     },
     "Byron Bay": {
-        "light": ("Byron's Open {mood} Rhythm", "the {mood} Headland Pulse"),
-        "clean": ("Byron's Clean {mood} Rhythm", "the Groomed {mood} Lines"),
-        "messy": ("Shape in Byron's {mood} Texture", "the Restless {mood} Water"),
+        "light": ("the Open {mood} Rhythm", "the {mood} Headland Pulse"),
+        "clean": ("the Clean {mood} Rhythm", "the Groomed {mood} Headland Lines"),
+        "messy": ("Shape in the {mood} Texture", "the Restless {mood} Headland Water"),
     },
 }
 

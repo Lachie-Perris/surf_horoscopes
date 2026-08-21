@@ -5,7 +5,8 @@ This is a dependency-free static site for GitHub Pages.
 ## Publishing
 
 These files are the editable website design source. `build_site.py` copies them into
-the generated Pages artifact and injects the latest forecast and horoscope data.
+the generated Pages artifact, injects the latest forecast and horoscope data, and
+creates the charts used by the **See the data** page.
 
 ## Update daily conditions
 
