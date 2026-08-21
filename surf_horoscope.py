@@ -47,40 +47,59 @@ SPOT_RULES = {
     "Byron Bay": {"sectors": ((135.0, 225.0),), "label": "SW to SE via S"},
 }
 
-OPENINGS = (
-    "The sea is speaking in {mood} tones at {location}.",
-    "At {location}, the water carries a {mood} character.",
-    "Today's ocean at {location} feels {mood}.",
-)
-CONDITION_LINES = (
-    "With Hs near {hs:.1f} m and a {period:.0f}-second primary period, it feels {energy}.",
-    "A {period:.0f}-second pulse beneath roughly {hs:.1f} m of swell makes the water {energy}.",
-    "The combination of {hs:.1f} m Hs and a {period:.0f}-second period feels {energy}.",
+LOCATION_OPENINGS = {
+    "Bondi Beach": (
+        "Bondi's eastern edge is carrying a {mood} mood today.",
+        "At Bondi, the ocean arrives with a {mood} but unmistakable presence.",
+        "The water off Bondi feels {mood}, asking the city to match its tempo.",
+        "Bondi wakes to an ocean with a distinctly {mood} character.",
+    ),
+    "Byron Bay": (
+        "Around Byron's headland, the sea settles into a {mood} rhythm.",
+        "Byron's open horizon holds a {mood} ocean today.",
+        "At Byron, the water carries a {mood} energy around the bay.",
+        "The sea off Byron feels {mood}, moving to its own spacious tempo.",
+    ),
+}
+FEELING_LINES = (
+    "Its character is {height_feel}, while the rhythm underneath is {energy}.",
+    "On the surface it feels {height_feel}; beneath that, the pulse is {energy}.",
+    "The ocean's body is {height_feel}, carried by energy that is {energy}.",
+    "Expect water that feels {height_feel}, with a rhythm that remains {energy}.",
 )
 WIND_LINES = {
-    "calm/light": (
-        "The {wind_dir} wind is light at {wind_speed:.1f} m/s, leaving little surface texture.",
-        "A faint {wind_dir} breeze of {wind_speed:.1f} m/s barely interrupts the water.",),
-    "favourable": (
-        "A favourable {wind_dir} wind at {wind_speed:.1f} m/s helps groom the surface.",
-        "The {wind_dir} wind, around {wind_speed:.1f} m/s, arrives from a favourable quarter.",),
-    "unfavourable": (
-        "An unfavourable {wind_dir} wind at {wind_speed:.1f} m/s asks for adaptability.",
-        "The {wind_dir} wind, near {wind_speed:.1f} m/s, works against clean organisation.",),
+    "light": (
+        "A light {wind_dir} breath leaves the surface largely untouched.",
+        "The breeze is quiet enough for the ocean's natural shape to show through.",
+        "Little wind interferes, so the water keeps an open, unforced face.",),
+    "clean": (
+        "The {wind_dir} wind is grooming the surface into cleaner lines.",
+        "A tidy {wind_dir} breeze gives the ocean a more polished face.",
+        "The wind is helping the sea organise itself into clean, readable lines.",),
+    "messy": (
+        "The {wind_dir} wind is roughening the surface and breaking up the lines.",
+        "Wind texture makes the ocean feel scattered, so patience will reveal the better moments.",
+        "The surface is untidy under the {wind_dir} wind, with shape hiding inside the noise.",),
 }
-HEADLINES = {
-    "Aries": ("Commit After the Pause", "Fire Meets Moving Water"),
-    "Taurus": ("Trust the Patient Pulse", "Wait for the True Line"),
-    "Gemini": ("Read the Shifting Peak", "One Choice Among Many"),
-    "Cancer": ("Let the Water Speak", "Intuition Finds a Line"),
-    "Leo": ("Confidence Without Performance", "A Generous Line Appears"),
-    "Virgo": ("Precision in Motion", "Refine the Take-off"),
-    "Libra": ("Balance Finds the Peak", "Effort Meets Ease"),
-    "Scorpio": ("Depth Before Commitment", "Meet Power Calmly"),
-    "Sagittarius": ("Explore with Respect", "A Wider Horizon Calls"),
-    "Capricorn": ("Patience Builds the Session", "Positioning Is the Work"),
-    "Aquarius": ("Find the Unusual Line", "Observe, Then Experiment"),
-    "Pisces": ("Feel the Hidden Tempo", "Dream with Open Eyes"),
+HEADLINE_PATTERNS = {
+    "Aries": "Commit to {subject}", "Taurus": "Wait for {subject}",
+    "Gemini": "Read {subject}", "Cancer": "Trust {subject}",
+    "Leo": "Meet {subject} with Presence", "Virgo": "Find Precision in {subject}",
+    "Libra": "Balance Within {subject}", "Scorpio": "Go Deeper into {subject}",
+    "Sagittarius": "Explore {subject}", "Capricorn": "Build Around {subject}",
+    "Aquarius": "Reimagine {subject}", "Pisces": "Feel {subject}",
+}
+HEADLINE_SUBJECTS = {
+    "Bondi Beach": {
+        "light": ("Bondi's Open {mood} Face", "the {mood} Eastern Pulse"),
+        "clean": ("Bondi's Clean {mood} Pulse", "the Groomed {mood} Lines"),
+        "messy": ("Shape in Bondi's {mood} Static", "the Restless {mood} Edge"),
+    },
+    "Byron Bay": {
+        "light": ("Byron's Open {mood} Rhythm", "the {mood} Headland Pulse"),
+        "clean": ("Byron's Clean {mood} Rhythm", "the Groomed {mood} Lines"),
+        "messy": ("Shape in Byron's {mood} Texture", "the Restless {mood} Water"),
+    },
 }
 
 
@@ -147,11 +166,11 @@ def interpret_conditions(row):
 
     favourable = any(_in_sector(wind_direction, a, b) for a, b in SPOT_RULES[location]["sectors"])
     if wind_speed < 2.0:
-        wind_quality, wind_feel = "calm/light", "barely textured by wind"
+        wind_quality, wind_feel = "light", "open-faced and barely textured by wind"
     elif favourable:
-        wind_quality, wind_feel = "favourable", "groomed by a favourable local wind"
+        wind_quality, wind_feel = "clean", "cleaner and more organised under the local wind"
     else:
-        wind_quality, wind_feel = "unfavourable", "ruffled by an unfavourable local wind"
+        wind_quality, wind_feel = "messy", "messy and broken up by the local wind"
 
     return {
         "location": location, "valid_time_utc": str(pd.Timestamp(row["valid_time_utc"])),
@@ -159,7 +178,7 @@ def interpret_conditions(row):
         "wave_direction": None if pd.isna(wave_direction) else compass_direction(wave_direction),
         "wind_speed_m_s": round(wind_speed, 1), "wind_direction": compass_direction(wind_direction),
         "wind_direction_deg": round(wind_direction), "wind_quality": wind_quality,
-        "favourable_wind_rule": SPOT_RULES[location]["label"], "ocean_mood": mood,
+        "clean_wind_rule": SPOT_RULES[location]["label"], "ocean_mood": mood,
         "height_feel": height_feel, "period_feel": period_feel,
         "ocean_feeling": f"{height_feel}; {period_feel}; {wind_feel}",
     }
@@ -181,22 +200,29 @@ def _rng(conditions, sign):
 
 def generate_spot_horoscopes(conditions):
     """Create all 12 readings locally from curated components."""
-    summary = (f"Hs {conditions['wave_height_m']:.1f} m at {conditions['primary_period_s']:.0f} s, "
-               f"with {conditions['wind_direction']} wind at {conditions['wind_speed_m_s']:.1f} m/s "
-               f"({conditions['wind_quality']}). The ocean feels {conditions['ocean_feeling']}.")
+    summary = (f"Wave height {conditions['wave_height_m']:.1f} m with a "
+               f"{conditions['primary_period_s']:.0f}-second primary rhythm. "
+               f"The {conditions['wind_direction']} wind leaves the surface "
+               f"{conditions['wind_quality']}. Overall, the ocean feels "
+               f"{conditions['ocean_feeling']}.")
     values = {"location": conditions["location"], "mood": conditions["ocean_mood"],
               "hs": conditions["wave_height_m"], "period": conditions["primary_period_s"],
-              "energy": conditions["period_feel"], "wind_dir": conditions["wind_direction"],
+              "height_feel": conditions["height_feel"], "energy": conditions["period_feel"],
+              "wind_dir": conditions["wind_direction"],
               "wind_speed": conditions["wind_speed_m_s"]}
     reports = []
     for sign in STAR_SIGNS:
         rng = _rng(conditions, sign)
         gift, lesson, actions = SIGN_VOICES[sign]
-        reading = " ".join((rng.choice(OPENINGS).format(**values),
-                            rng.choice(CONDITION_LINES).format(**values),
+        reading = " ".join((rng.choice(LOCATION_OPENINGS[conditions["location"]]).format(**values),
+                            rng.choice(FEELING_LINES).format(**values),
                             rng.choice(WIND_LINES[conditions["wind_quality"]]).format(**values),
                             f"Your {gift} is useful here. {lesson}"))
-        reports.append(Horoscope(sign, rng.choice(HEADLINES[sign]), reading,
+        subject = rng.choice(
+            HEADLINE_SUBJECTS[conditions["location"]][conditions["wind_quality"]]
+        ).format(mood=conditions["ocean_mood"].title())
+        headline = HEADLINE_PATTERNS[sign].format(subject=subject)
+        reports.append(Horoscope(sign, headline, reading,
                                  rng.choice(actions).capitalize() + "."))
     return SpotHoroscopes(conditions["location"], summary, reports)
 
