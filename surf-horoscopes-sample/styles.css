@@ -53,3 +53,14 @@ body:before{content:"";position:fixed;inset:-20%;pointer-events:none;z-index:-2;
 .time-tabs{border-radius:16px;overflow:hidden;background:rgba(255,255,255,.025)}
 @media(max-width:850px){.controls{padding-left:20px;padding-right:20px}.tab-intro{align-items:flex-start;gap:10px;flex-direction:column}.sign-picker{padding-left:0;padding-right:0}.reading-shell{padding-left:20px;padding-right:20px}}
 @media(max-width:560px){.intro{min-height:520px}.controls{padding:42px 14px 0}.location-tabs{height:auto;grid-template-columns:1fr}.location-tab{min-height:110px;padding:20px!important}.tab-state{font-size:10px!important}.sign-picker{padding-left:0;padding-right:0}.reading-shell{padding-left:14px;padding-right:14px}.reading-card{border-radius:20px}.tab-intro p:last-child{font-size:13px}}
+
+/* Report-first reading hierarchy from the supplied redesign. */
+body{background:radial-gradient(circle at 8% 12%,rgba(255,66,161,.18),transparent 28%),radial-gradient(circle at 88% 18%,rgba(58,216,255,.16),transparent 30%),radial-gradient(circle at 52% 82%,rgba(123,92,255,.2),transparent 34%),#090812;background-attachment:fixed}
+.reading-card{grid-template-columns:.52fr 1.48fr;min-height:560px;background:radial-gradient(circle at 2% 4%,rgba(201,255,90,.12),transparent 22%),radial-gradient(circle at 96% 14%,rgba(58,216,255,.11),transparent 24%),rgba(9,8,18,.72)}
+.sigil-panel{min-height:0;background:radial-gradient(circle at 50% 42%,var(--glow),transparent 56%),var(--sign-gradient);opacity:.82}
+.zodiac-glyph{font-size:clamp(68px,9vw,112px);text-shadow:0 0 30px var(--glow)}
+.orbit{width:220px;height:220px;opacity:.55}.orbit-two{width:300px;height:300px}
+.message-panel{padding:72px clamp(34px,7vw,110px);justify-content:flex-start}
+.message-panel .overline{margin-top:8px}.message-panel h2{font-size:clamp(58px,7vw,98px);max-width:760px;margin:18px 0 34px}.reading-copy{font-size:17px;line-height:1.85;max-width:680px;color:#e5e0ea}.message-panel blockquote{max-width:680px;margin-top:42px}
+@media(max-width:850px){.reading-card{grid-template-columns:1fr}.sigil-panel{min-height:250px;border-right:0;border-bottom:1px solid var(--line)}.message-panel{padding-top:54px}}
+@media(max-width:560px){.sigil-panel{min-height:220px}.zodiac-glyph{font-size:78px}.orbit{width:170px;height:170px}.orbit-two{width:230px;height:230px}.message-panel h2{font-size:54px}.reading-copy{font-size:15px}}
