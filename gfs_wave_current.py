@@ -1,4 +1,4 @@
-"""Download a five-day GFS Wave forecast for Bondi and Byron Bay."""
+"""Download a fourteen-day GFS Wave forecast for Bondi and Byron Bay."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ BEACHES = {
 }
 BBOX = {"leftlon": 150.0, "rightlon": 155.0, "bottomlat": -35.0, "toplat": -27.0}
 BASE_URL = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfswave.pl"
-FORECAST_HOURS = tuple(range(0, 121, 3))
+FORECAST_HOURS = tuple(range(0, 337, 3))
 ALIASES = {
     "wave_height_m": ("swh", "htsgw"), "primary_period_s": ("perpw",),
     "primary_direction_deg": ("dirpw",), "wind_speed_m_s": ("ws", "wind"),

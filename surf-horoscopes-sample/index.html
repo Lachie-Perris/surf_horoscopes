@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Surf Horoscopes — Read the Tide Within</title>
-  <meta name="description" content="Daily surf horoscopes for Bondi and Byron, written from swell, period, wind and the zodiac.">
+  <meta name="description" content="Today's surf horoscope and your best cosmic surf day in the next fortnight for Bondi and Byron.">
   <meta property="og:title" content="Surf Horoscopes">
   <meta property="og:description" content="Read the tide within.">
   <meta property="og:image" content="og.png">
@@ -27,7 +27,7 @@
       <div class="intro-orbit" aria-hidden="true"><span>✦</span></div>
       <p class="overline">GFS WAVE × THE ZODIAC</p>
       <h1>Read the tide<br><em>within.</em></h1>
-      <p class="intro-copy">A daily celestial reading of the ocean—translated from wave height, period and wind for the sign you move through water with.</p>
+      <p class="intro-copy">A celestial reading of today's ocean—and the best meeting of surf and sky waiting for your sign in the next fortnight.</p>
       <a class="begin" href="#reading">Reveal your reading <span>↓</span></a>
     </section>
 
@@ -43,6 +43,10 @@
     </section>
 
     <section class="reading-shell" aria-live="polite">
+      <div class="time-tabs" role="tablist" aria-label="Reading time">
+        <button class="time-tab today active" role="tab" aria-selected="true" data-period="today"><span>01</span> Today</button>
+        <button class="time-tab future" role="tab" aria-selected="false" data-period="future"><span>02</span> Your future</button>
+      </div>
       <div class="reading-card" id="reading-card">
         <div class="sigil-panel">
           <span class="sign-index" id="sign-index">01 / 12</span>
@@ -52,7 +56,7 @@
         </div>
         <div class="message-panel">
           <div class="reading-meta"><span id="location-label">BONDI BEACH</span><span id="sign-dates">MAR 21 — APR 19</span></div>
-          <p class="overline">YOUR OCEAN READING</p>
+          <p class="overline" id="reading-period-label">TODAY'S OCEAN READING</p>
           <h2 id="reading-title">Fire Meets<br>Moving Water</h2>
           <p class="cosmic-context" id="cosmic-context"></p>
           <p class="reading-copy" id="reading-copy"></p>
@@ -62,7 +66,7 @@
     </section>
 
     <section class="conditions-panel">
-      <div class="conditions-heading"><p class="overline">THE OCEAN, NOW</p><h2 id="conditions-location">Bondi Beach</h2></div>
+      <div class="conditions-heading"><p class="overline" id="conditions-time">THE OCEAN, NOW</p><h2 id="conditions-location">Bondi Beach</h2></div>
       <div class="condition"><span>WAVE HEIGHT</span><strong id="wave-height">0.7</strong><small>metres</small></div>
       <div class="condition"><span>PRIMARY PERIOD</span><strong id="wave-period">06</strong><small>seconds</small></div>
       <div class="condition"><span>LOCAL WIND</span><strong id="wind-direction">NE</strong><small id="wind-speed">3.4 m/s · messy</small></div>

@@ -9,6 +9,7 @@ import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -46,8 +47,20 @@ SIGN_VOICES = {
 
 # Wind directions are FROM, clockwise from north.
 SPOT_RULES = {
-    "Bondi Beach": {"sectors": ((270.0, 360.0), (0.0, 0.0)), "label": "W to N"},
-    "Byron Bay": {"sectors": ((135.0, 225.0),), "label": "SW to SE via S"},
+    "Bondi Beach": {"sectors": ((270.0, 360.0), (0.0, 0.0)), "swell": ((45, 180),), "label": "W to N"},
+    "Byron Bay": {"sectors": ((135.0, 225.0),), "swell": ((45, 180),), "label": "SW to SE via S"},
+}
+
+SIGN_ELEMENTS = {
+    "Aries": "fire", "Leo": "fire", "Sagittarius": "fire",
+    "Taurus": "earth", "Virgo": "earth", "Capricorn": "earth",
+    "Gemini": "air", "Libra": "air", "Aquarius": "air",
+    "Cancer": "water", "Scorpio": "water", "Pisces": "water",
+}
+SIGN_RULERS = {
+    "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury", "Cancer": "Moon",
+    "Leo": "Sun", "Virgo": "Mercury", "Libra": "Venus", "Scorpio": "Pluto",
+    "Sagittarius": "Jupiter", "Capricorn": "Saturn", "Aquarius": "Uranus", "Pisces": "Neptune",
 }
 
 LOCATION_OPENINGS = {
@@ -194,6 +207,105 @@ def current_rows(forecast):
     data["valid_time_utc"] = pd.to_datetime(data["valid_time_utc"], utc=True)
     data["distance_from_now"] = (data["valid_time_utc"] - pd.Timestamp.now(tz="UTC")).abs()
     return data.loc[data.groupby("location")["distance_from_now"].idxmin()].drop(columns="distance_from_now")
+
+
+def _surf_score(row):
+    """Score a morning forecast for useful swell energy and surface quality."""
+    conditions = interpret_conditions(row)
+    height = conditions["wave_height_m"]
+    period = conditions["primary_period_s"]
+    wind_score = {"clean": 5.0, "light": 4.5, "messy": max(-1.5, 1.5 - conditions["wind_speed_m_s"] / 2)}[
+        conditions["wind_quality"]
+    ]
+    height_score = max(0.0, 3.0 - abs(height - 1.4) * 1.8)
+    period_score = max(0.0, min(3.0, (period - 7.0) / 2.0))
+    direction = float(row.get("primary_direction_deg", 0)) % 360
+    direction_score = 1.5 if any(
+        _in_sector(direction, start, end) for start, end in SPOT_RULES[conditions["location"]]["swell"]
+    ) else 0.0
+    return wind_score + height_score + period_score + direction_score
+
+
+def _supportive_elements(first, second):
+    return first == second or {first, second} in ({"fire", "air"}, {"earth", "water"})
+
+
+def _astrology_score(sign, sky):
+    score = 0.0
+    sign_element = SIGN_ELEMENTS[sign]
+    moon_sign = sky.get("moon", {}).get("sign")
+    if moon_sign in SIGN_ELEMENTS:
+        score += 2.0 if SIGN_ELEMENTS[moon_sign] == sign_element else (
+            1.0 if _supportive_elements(SIGN_ELEMENTS[moon_sign], sign_element) else -0.5
+        )
+    ruler = SIGN_RULERS[sign]
+    placement = sky.get("planets", {}).get(ruler)
+    if placement and placement.get("sign") in SIGN_ELEMENTS:
+        ruler_element = SIGN_ELEMENTS[placement["sign"]]
+        score += 1.5 if _supportive_elements(ruler_element, sign_element) else -0.5
+        score += -0.75 if placement.get("retrograde") else 0.5
+    for event in sky.get("events", []):
+        if event.get("sign") == sign:
+            score += 1.5
+    return score
+
+
+def _future_cosmic_context(cosmic, date, sign):
+    sky = cosmic.get("future", {}).get(date, {})
+    moon = sky.get("moon", cosmic["moon"])
+    ruler = SIGN_RULERS[sign]
+    placement = sky.get("planets", {}).get(ruler)
+    if placement:
+        motion = "retrograde" if placement.get("retrograde") else "direct"
+        lead = f"{ruler} moves {motion} through {placement.get('sign', 'the wider sky')}"
+    else:
+        events = sky.get("events", [])
+        lead = events[0].get("headline") if events else "the wider sky opens a quieter window"
+    return {
+        "date": date, "sun": cosmic.get("sun", {}), "moon": moon,
+        "signs": {sign: {"lead_event": lead, "daily_tip": None}},
+    }
+
+
+def generate_future_horoscopes(forecast, cosmic):
+    """Choose the best combined surf/cosmic day in the next fortnight for every sign."""
+    data = forecast.copy()
+    data["valid_time_utc"] = pd.to_datetime(data["valid_time_utc"], utc=True)
+    local = data["valid_time_utc"].dt.tz_convert(ZoneInfo("Australia/Sydney"))
+    data["local_date"] = local.dt.date.astype(str)
+    data["local_hour"] = local.dt.hour
+    today = pd.Timestamp.now(tz="Australia/Sydney").date().isoformat()
+    candidates = data[(data["local_date"] > today) & data["local_hour"].between(5, 12)].copy()
+    if candidates.empty:
+        candidates = data[data["local_date"] > today].copy()
+    candidates["surf_score"] = candidates.apply(_surf_score, axis=1)
+    results = {}
+    for location, spot_rows in candidates.groupby("location"):
+        daily = spot_rows.loc[spot_rows.groupby("local_date")["surf_score"].idxmax()]
+        sign_results = {}
+        for sign in STAR_SIGNS:
+            ranked = daily.copy()
+            ranked["combined_score"] = ranked.apply(
+                lambda row: row["surf_score"] + _astrology_score(
+                    sign, cosmic.get("future", {}).get(row["local_date"], {})
+                ), axis=1,
+            )
+            clean = ranked[ranked.apply(lambda row: interpret_conditions(row)["wind_quality"] != "messy", axis=1)]
+            chosen = (clean if not clean.empty else ranked).sort_values("combined_score", ascending=False).iloc[0]
+            conditions = interpret_conditions(chosen)
+            date = chosen["local_date"]
+            future_cosmic = _future_cosmic_context(cosmic, date, sign)
+            horoscope = next(
+                item for item in generate_spot_horoscopes(conditions, future_cosmic).horoscopes
+                if item.sign == sign
+            )
+            horoscope.reading = horoscope.reading.replace(" today", " on this coming day")
+            sign_results[sign] = {
+                "date": date, "conditions": conditions, "horoscope": asdict(horoscope),
+                "score": round(float(chosen["combined_score"]), 2),
+            }
+        results[location] = sign_results
+    return results
 
 
 def _rng(conditions, sign, cosmic_date=""):

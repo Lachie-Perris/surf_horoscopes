@@ -33,7 +33,9 @@ def make_forecast_charts(forecast, destination):
     destination.mkdir(parents=True, exist_ok=True)
     paths = {}
     for location, group in forecast.groupby("location"):
-        g = group.sort_values("valid_time_utc").copy()
+        # Keep the detailed public chart readable; the full fortnight still feeds
+        # the "Your future" selector and downloadable forecast data.
+        g = group[group["forecast_hour"] <= 120].sort_values("valid_time_utc").copy()
         g["local_time"] = pd.to_datetime(g.valid_time_utc, utc=True).dt.tz_convert(LOCAL_TZ)
         # Web-friendly canvas: approximately 1200 x 720 px at the saved DPI.
         fig = plt.figure(figsize=(10, 6), facecolor=BG)

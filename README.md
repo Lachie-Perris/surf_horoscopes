@@ -4,6 +4,7 @@ Open `gfs_wave_bondi_byron.ipynb` in Jupyter and run all cells. The notebook:
 
 - finds the newest available NOAA/NCEP GFS Wave cycle;
 - downloads only a small NSW coastal subset of the 0.25-degree global grid;
+- evaluates the next 14 days for a sign-specific "Your future" recommendation;
 - automatically selects the nearest valid ocean grid cell to Bondi Beach and Byron Bay;
 - creates separate Surfline-style Bondi and Byron Bay panels showing significant
   wave height, primary period, swell direction, local wind speed, and wind direction; and
@@ -29,8 +30,11 @@ from surf_horoscope import generate_all_horoscopes
 reports = generate_all_horoscopes(forecast, OUTPUT_DIR)
 ```
 
-This saves Markdown and JSON reports under `output/`. The same spot, date, and sign
-produce the same text, while different dates select different curated variations.
+This saves Markdown and JSON reports under `output/`. For the future view, each
+morning is scored for clean or light wind, useful swell height, period and direction.
+That surf score is combined with the sign's elemental relationship to the Moon and
+the placement and motion of its ruling planet. The highest clean-wind result becomes
+that sign's recommended day at each beach.
 
 ## GitHub Pages website
 
@@ -43,6 +47,6 @@ python build_site.py --demo
 
 Then open `site/index.html`. On GitHub, open **Settings → Pages**, choose **GitHub
 Actions** as the source, and manually run **Update surf horoscopes** from the Actions
-tab. The same workflow refreshes the live five-day GFS Wave data four times daily.
-The generated `data.html` page displays separate Bondi and Byron charts for wave
+tab. The same workflow refreshes the live fourteen-day GFS Wave data four times daily.
+The generated `data.html` page displays readable five-day Bondi and Byron charts for wave
 height, primary period, swell direction, wind speed, and wind direction.

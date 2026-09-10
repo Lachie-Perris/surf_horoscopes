@@ -21,3 +21,14 @@ body[data-layout="lunar"] .sigil-panel{background:radial-gradient(circle at 38% 
 .sign-button.selected{background:linear-gradient(rgba(12,11,19,.72),rgba(12,11,19,.72)),var(--sign-gradient)}
 .cosmic-context{margin:0 0 24px;padding:13px 16px;border-left:2px solid var(--sign);background:color-mix(in srgb,var(--sign) 8%,transparent);color:var(--sign-soft);font:400 12px/1.65 var(--mono)}
 footer p a{color:var(--paper);border-bottom:1px solid var(--line)}
+
+.time-tabs{display:grid;grid-template-columns:1fr 1fr;margin-bottom:18px;border:1px solid var(--line)}
+.time-tab{min-height:62px;border:0;border-right:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;transition:.25s}
+.time-tab:last-child{border-right:0}.time-tab span{margin-right:12px;opacity:.65}
+.time-tab.today{box-shadow:inset 0 3px 0 #6eced0}.time-tab.future{box-shadow:inset 0 3px 0 #d991fb}
+.time-tab.today.active{color:#d9ffff;background:rgba(110,206,208,.12)}
+.time-tab.future.active{color:#f1d9ff;background:rgba(217,145,251,.13)}
+body[data-period="future"]{--time-accent:#d991fb}
+body[data-period="future"] .reading-card{border-color:color-mix(in srgb,#d991fb 48%,var(--line));box-shadow:0 35px 100px rgba(102,48,126,.25)}
+body[data-period="future"] .cosmic-context{border-left-color:#d991fb}
+@media(max-width:560px){.time-tab{min-height:54px;font-size:10px}.reading-meta{gap:18px;line-height:1.5}}

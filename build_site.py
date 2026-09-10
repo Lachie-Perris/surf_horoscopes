@@ -12,7 +12,10 @@ from pathlib import Path
 import pandas as pd
 
 from forecast_charts import make_forecast_charts
-from surf_horoscope import current_rows, generate_all_horoscopes, interpret_conditions
+from astrology_context import fetch_cosmic_context
+from surf_horoscope import (
+    current_rows, generate_all_horoscopes, generate_future_horoscopes, interpret_conditions,
+)
 
 DESIGN_DIR = Path(__file__).parent / "surf-horoscopes-sample"
 
@@ -20,11 +23,14 @@ DESIGN_DIR = Path(__file__).parent / "surf-horoscopes-sample"
 def render_site(forecast, destination="site"):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
-    reports = generate_all_horoscopes(forecast, destination / "data")
+    cosmic = fetch_cosmic_context(future_days=14)
+    reports = generate_all_horoscopes(forecast, destination / "data", cosmic)
+    futures = generate_future_horoscopes(forecast, cosmic)
     current = current_rows(forecast)
     profiles = {row["location"]: interpret_conditions(row) for _, row in current.iterrows()}
     payload = {
-        location: {"conditions": profiles[location], "report": asdict(report)}
+        location: {"conditions": profiles[location], "report": asdict(report),
+                   "future": futures[location]}
         for location, report in reports.items()
     }
 
@@ -49,14 +55,14 @@ def render_site(forecast, destination="site"):
     (destination / "data" / "forecast.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    forecast.to_csv(destination / "data" / "five_day_forecast.csv", index=False)
+    forecast.to_csv(destination / "data" / "fourteen_day_forecast.csv", index=False)
     return destination / "index.html"
 
 
 def demo_forecast():
     now = pd.Timestamp.now(tz="UTC")
     rows = []
-    for hour in range(0, 121, 3):
+    for hour in range(0, 337, 3):
         for location, base_height, base_period, wind_direction in (
             ("Bondi Beach", 1.2, 11, 300), ("Byron Bay", .9, 9, 180)
         ):
