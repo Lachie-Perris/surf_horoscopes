@@ -32,12 +32,13 @@
     </section>
 
     <section class="controls" id="reading" aria-label="Choose your reading">
+      <div class="tab-intro"><p class="overline">CHOOSE YOUR BREAK</p><p>Switch beaches to reveal a new ocean reading.</p></div>
       <div class="location-tabs" role="tablist" aria-label="Surf location">
-        <button class="location-tab active" role="tab" aria-selected="true" data-location="bondi"><span>01</span> Bondi</button>
-        <button class="location-tab" role="tab" aria-selected="false" data-location="byron"><span>02</span> Byron</button>
+        <button class="location-tab active" role="tab" aria-selected="true" data-location="bondi"><span class="tab-number">01</span><span class="tab-name">Bondi</span><span class="tab-detail"></span><span class="tab-state">Selected</span></button>
+        <button class="location-tab" role="tab" aria-selected="false" data-location="byron"><span class="tab-number">02</span><span class="tab-name">Byron</span><span class="tab-detail"></span><span class="tab-state">Select</span></button>
       </div>
       <div class="sign-picker">
-        <div><p class="overline">CHOOSE YOUR SIGN</p><h2>What constellation<br>guides you?</h2></div>
+        <div><p class="overline">CHOOSE YOUR SIGN</p><h2>What constellation<br>guides you?</h2><p class="picker-help">Select a sign to change the colour, celestial layout and reading.</p></div>
         <div class="sign-grid" role="listbox" aria-label="Star sign" id="sign-grid"></div>
       </div>
     </section>
