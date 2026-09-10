@@ -16,9 +16,12 @@ refresh the forecast.
 
 ## Current-condition surf horoscopes
 
-`surf_horoscope.py` converts the current forecast row into deterministic ocean-feeling
-and wind-quality labels, then assembles a distinct report for every star sign from
-curated local templates. It is fully offline and requires no API key or AI model:
+`surf_horoscope.py` converts the current forecast row into ocean-feeling and
+wind-quality labels, then combines them with the day's Sun sign, Moon sign and
+phase, planetary aspects, retrogrades, and a sign-specific lead event from the free
+[CosmyDay astrology API](https://cosmyday.com/api-docs). It requires no API key or
+paid AI model. If the astrology service is temporarily unavailable, the build uses
+a local neutral fallback instead of failing:
 
 ```python
 from surf_horoscope import generate_all_horoscopes

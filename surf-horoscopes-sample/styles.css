@@ -15,3 +15,9 @@ body[data-layout="lunar"] .sigil-panel{background:radial-gradient(circle at 38% 
 .chart-scroll img{max-width:100%}
 @media(max-width:850px){.site-header{grid-template-columns:auto 1fr;gap:16px;padding-inline:22px}.site-header .edition{display:none}.site-header .site-nav{justify-self:end}}
 @media(max-width:560px){.site-header{min-height:72px;height:auto;gap:10px;padding:10px 14px}.site-header .wordmark>span:last-child{display:none}.site-header .site-nav a{height:34px;padding:0 10px;font-size:7px;letter-spacing:.08em}.chart-scroll img{width:760px;max-width:none}}
+
+/* Each sign carries a Colorflow-inspired mesh gradient. */
+.sigil-panel{background:radial-gradient(circle at 50% 42%,transparent 5%,rgba(12,11,19,.36) 64%),var(--sign-gradient)}
+.sign-button.selected{background:linear-gradient(rgba(12,11,19,.72),rgba(12,11,19,.72)),var(--sign-gradient)}
+.cosmic-context{margin:0 0 24px;padding:13px 16px;border-left:2px solid var(--sign);background:color-mix(in srgb,var(--sign) 8%,transparent);color:var(--sign-soft);font:400 12px/1.65 var(--mono)}
+footer p a{color:var(--paper);border-bottom:1px solid var(--line)}

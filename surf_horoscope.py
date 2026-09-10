@@ -1,15 +1,18 @@
-"""Lightweight, offline surf-horoscope generator with no API or model."""
+"""Lightweight surf-horoscope generator enriched by free daily astrology data."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import random
+import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+
+from astrology_context import fetch_cosmic_context
 
 STAR_SIGNS = ("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra",
               "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
@@ -109,6 +112,7 @@ class Horoscope:
     headline: str
     reading: str
     surf_intention: str
+    cosmic_alignment: str
 
 
 @dataclass
@@ -192,14 +196,30 @@ def current_rows(forecast):
     return data.loc[data.groupby("location")["distance_from_now"].idxmin()].drop(columns="distance_from_now")
 
 
-def _rng(conditions, sign):
+def _rng(conditions, sign, cosmic_date=""):
     day = pd.Timestamp(conditions["valid_time_utc"]).strftime("%Y-%m-%d")
-    digest = hashlib.sha256(f"{day}|{conditions['location']}|{sign}|v1".encode()).digest()
+    digest = hashlib.sha256(f"{day}|{conditions['location']}|{sign}|{cosmic_date}|v2".encode()).digest()
     return random.Random(int.from_bytes(digest[:8], "big"))
 
 
-def generate_spot_horoscopes(conditions):
-    """Create all 12 readings locally from curated components."""
+def _cosmic_line(sign, cosmic):
+    moon = cosmic["moon"]
+    illumination = moon.get("illumination")
+    lit = f", {illumination:.0%} illuminated" if isinstance(illumination, (int, float)) else ""
+    sign_data = cosmic.get("signs", {}).get(sign, {})
+    lead = sign_data.get("lead_event")
+    if lead:
+        lead = re.sub(r"\s*\[([^]]+)\]", r", currently \1", lead).rstrip(".").lower()
+        lead_text = f" Through {sign}, the particular current is {lead}."
+    else:
+        lead_text = f" Through {sign}, that wider sky meets your own elemental rhythm."
+    return (f"A {moon['phase_name']} Moon in {moon['sign']}{lit} sets the inner tide, "
+            f"while the Sun moves through {cosmic['sun'].get('sign', 'the current season')}."
+            f"{lead_text}")
+
+
+def generate_spot_horoscopes(conditions, cosmic):
+    """Create all 12 readings from local surf logic and current astrology."""
     summary = (f"Wave height {conditions['wave_height_m']:.1f} m with a "
                f"{conditions['primary_period_s']:.0f}-second primary rhythm. "
                f"The {conditions['wind_direction']} wind leaves the surface "
@@ -212,8 +232,9 @@ def generate_spot_horoscopes(conditions):
               "wind_speed": conditions["wind_speed_m_s"]}
     reports = []
     for sign in STAR_SIGNS:
-        rng = _rng(conditions, sign)
+        rng = _rng(conditions, sign, cosmic.get("date", ""))
         gift, lesson, actions = SIGN_VOICES[sign]
+        cosmic_alignment = _cosmic_line(sign, cosmic)
         reading = " ".join((rng.choice(LOCATION_OPENINGS[conditions["location"]]).format(**values),
                             rng.choice(FEELING_LINES).format(**values),
                             rng.choice(WIND_LINES[conditions["wind_quality"]]).format(**values),
@@ -222,8 +243,9 @@ def generate_spot_horoscopes(conditions):
             HEADLINE_SUBJECTS[conditions["location"]][conditions["wind_quality"]]
         ).format(mood=conditions["ocean_mood"].title())
         headline = HEADLINE_PATTERNS[sign].format(subject=subject)
-        reports.append(Horoscope(sign, headline, reading,
-                                 rng.choice(actions).capitalize() + "."))
+        api_tip = cosmic.get("signs", {}).get(sign, {}).get("daily_tip")
+        intention = api_tip or (rng.choice(actions).capitalize() + ".")
+        reports.append(Horoscope(sign, headline, reading, intention, cosmic_alignment))
     return SpotHoroscopes(conditions["location"], summary, reports)
 
 
@@ -231,24 +253,28 @@ def _as_markdown(report, conditions):
     lines = [f"# {report.location} surf horoscopes", "",
              f"*Conditions valid {conditions['valid_time_utc']}*", "", report.conditions_summary, ""]
     for item in report.horoscopes:
-        lines += [f"## {item.sign} — {item.headline}", "", item.reading, "",
+        lines += [f"## {item.sign} — {item.headline}", "", f"*{item.cosmic_alignment}*", "",
+                  item.reading, "",
                   f"**Surf intention:** {item.surf_intention}", ""]
     return "\n".join(lines)
 
 
-def generate_all_horoscopes(forecast, output_dir="output"):
-    """Generate and save both reports, fully offline."""
+def generate_all_horoscopes(forecast, output_dir="output", cosmic_context=None):
+    """Generate both reports, falling back safely when the astrology API is unavailable."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     reports = {}
+    cosmic_context = cosmic_context or fetch_cosmic_context()
     for _, row in current_rows(forecast).iterrows():
         conditions = interpret_conditions(row)
-        report = generate_spot_horoscopes(conditions)
+        report = generate_spot_horoscopes(conditions, cosmic_context)
         reports[report.location] = report
         slug = report.location.lower().replace(" beach", "").replace(" ", "_")
         (output_dir / f"surf_horoscopes_{slug}.json").write_text(report.model_dump_json(), encoding="utf-8")
         (output_dir / f"surf_horoscopes_{slug}.md").write_text(_as_markdown(report, conditions), encoding="utf-8")
     metadata = {"generated_at_utc": datetime.now(timezone.utc).isoformat(),
-                "generator": "offline curated templates v1", "locations": list(reports)}
+                "generator": "surf templates + CosmyDay daily astrology v2",
+                "astrology_source": cosmic_context.get("source"),
+                "cosmic_context": cosmic_context, "locations": list(reports)}
     (output_dir / "surf_horoscope_run.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     return reports
