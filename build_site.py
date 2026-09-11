@@ -36,7 +36,7 @@ def render_site(forecast, destination="site"):
 
     for name in ("styles.css", "app.js", "favicon.svg", "og.png"):
         shutil.copy2(DESIGN_DIR / name, destination / name)
-    make_forecast_charts(forecast, destination)
+    make_forecast_charts(forecast, destination, cosmic)
 
     template = (DESIGN_DIR / "index.html").read_text(encoding="utf-8")
     data_script = (
