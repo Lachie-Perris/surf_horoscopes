@@ -7,3 +7,6 @@ data/
 output/
 site/
 *.zip
+# Private source material used to develop the curated writing motifs.
+Surf_report_log.txt
+surf_report_log_cleaned.txt

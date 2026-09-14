@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from astrology_context import fetch_cosmic_context
+from surf_style_library import retrieve_style_line
 
 STAR_SIGNS = ("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra",
               "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
@@ -83,6 +84,26 @@ FEELING_LINES = (
     "The ocean's body is {height_feel}, carried by energy that is {energy}.",
     "Expect water that feels {height_feel}, with a rhythm that remains {energy}.",
 )
+EAST_COAST_HEIGHT_LINES = {
+    "tiny": ("The ocean is close to flat, with only faint lines showing along the beach.",
+             "There is very little push in the water, so any surfable line will need careful hunting."),
+    "small": ("The smaller lines still offer something surfable when the right bank draws them in.",
+              "Wave heights sit in a playful range, with the better-shaped lines worth hunting down."),
+    "medium": ("There is useful size across the open stretches, with enough energy to keep the session moving.",
+               "The swell is showing a little more push, without becoming overly demanding."),
+    "big": ("Solid sets are showing across the exposed stretches, with plenty of energy moving through the water.",
+            "The exposed beaches are carrying serious size, while protected corners may offer a smaller option."),
+    "very_big": ("Heavy lines are moving into the exposed coast, demanding patience, experience and careful judgement.",
+                 "There is consequential size on the open stretches, with sheltered options the sensible place to look."),
+}
+EAST_COAST_PERIOD_LINES = {
+    "short": ("Short-period energy keeps the ocean active and closely packed.",
+              "The swell is restless, with limited space between pulses."),
+    "medium": ("The swell has a workable rhythm, with the better sets showing a clearer shape.",
+               "There is a steady pulse underneath the surface texture."),
+    "long": ("Long lines are drawing into the coast with more space and intent between sets.",
+             "The longer-period pulse gives each line time to organise before it reaches the beach."),
+}
 WIND_LINES = {
     "light": (
         "A light {wind_dir} breath leaves the surface largely untouched.",
@@ -91,11 +112,32 @@ WIND_LINES = {
     "clean": (
         "The {wind_dir} wind is grooming the surface into cleaner lines.",
         "A tidy {wind_dir} breeze gives the ocean a more polished face.",
-        "The wind is helping the sea organise itself into clean, readable lines.",),
+        "The wind is helping the sea organise itself into clean, readable lines.",
+        "Cleaner conditions are settling in under the {wind_dir} breeze.",),
     "messy": (
         "The {wind_dir} wind is roughening the surface and breaking up the lines.",
         "Wind texture makes the ocean feel scattered, so patience will reveal the better moments.",
-        "The surface is untidy under the {wind_dir} wind, with shape hiding inside the noise.",),
+        "The surface is untidy under the {wind_dir} wind, with shape hiding inside the noise.",
+        "The open stretches are wind affected, so it is worth hunting around for a cleaner corner.",),
+}
+TIDE_LINES = {
+    "rising": (
+        "The rising tide gives the water a gathering, expectant pull.",
+        "The rising tide is drawing water back in, adding a sense of arrival to the session.",
+    ),
+    "falling": (
+        "The falling tide gives the ocean a releasing, outward-moving feeling.",
+        "As the tide draws away, the sea feels more exposed and revealing.",
+    ),
+    "high": (
+        "Near high water, the ocean feels full and briefly suspended.",
+        "The tide is near its upper turn, lending the shoreline a full, held breath.",
+    ),
+    "low": (
+        "Near low water, the shoreline feels open, exposed and searching.",
+        "The tide is near its lower turn, revealing more of the coast's underlying shape.",
+    ),
+    "unavailable": ("The tidal rhythm is not available for this reading.",),
 }
 HEADLINE_PATTERNS = {
     "Aries": "Commit to {subject}", "Taurus": "Wait for {subject}",
@@ -160,34 +202,50 @@ def interpret_conditions(row):
     wind_speed = float(row["wind_speed_m_s"])
     wind_direction = float(row["wind_direction_deg"]) % 360
     wave_direction = float(row.get("primary_direction_deg", float("nan")))
+    tide_height = float(row.get("tide_height_m", float("nan")))
+    tide_state = str(row.get("tide_state", "unavailable"))
+    next_tide_type = row.get("next_tide_type")
+    next_tide_time = row.get("next_tide_time_utc")
+    next_tide_height = row.get("next_tide_height_m")
 
     if hs < 0.5:
-        mood, height_feel = "quiet", "sleepy and delicate, with scarce push"
-    elif hs < 1.0:
-        mood, height_feel = "playful", "small and playful, rewarding timing more than force"
-    elif hs < 1.8:
-        mood, height_feel = "lively", "approachable but energetic enough for committed surfing"
-    elif hs < 2.8:
-        mood, height_feel = "powerful", "powerful and demanding, with a serious pulse"
+        mood, size_band, height_feel = "quiet", "tiny", "sleepy and delicate, with scarce push"
+    elif hs <= 1.5:
+        mood, size_band, height_feel = "playful", "small", "small and playful, rewarding timing more than force"
+    elif hs < 2.0:
+        mood, size_band, height_feel = "lively", "medium", "approachable but energetic enough for committed surfing"
+    elif hs <= 3.0:
+        mood, size_band, height_feel = "powerful", "big", "powerful and demanding, with a serious pulse"
     else:
-        mood, height_feel = "imposing", "heavy and imposing, with consequence in every decision"
+        mood, size_band, height_feel = "imposing", "very_big", "heavy and imposing, with consequence in every decision"
 
-    if period < 8:
-        period_feel = "short-period and restless, with closely packed energy"
-    elif period < 11:
-        period_feel = "moderately organised but active and peaky"
+    if period < 9:
+        period_band, period_feel = "short", "short-period and restless, with closely packed energy"
+    elif period < 12:
+        period_band, period_feel = "medium", "moderately organised but active and peaky"
     elif period < 14:
-        period_feel = "cleanly pulsing, with readable lines and breathing room"
+        period_band, period_feel = "long", "cleanly pulsing, with readable lines and breathing room"
     else:
-        period_feel = "deep and deliberate, carrying long-period energy beneath the surface"
+        period_band, period_feel = "long", "deep and deliberate, carrying long-period energy beneath the surface"
 
     favourable = any(_in_sector(wind_direction, a, b) for a, b in SPOT_RULES[location]["sectors"])
     if wind_speed < 2.0:
-        wind_quality, wind_feel = "light", "open-faced and barely textured by wind"
+        wind_quality, wind_strength, wind_feel = "light", "light", "open-faced and barely textured by wind"
     elif favourable:
-        wind_quality, wind_feel = "clean", "cleaner and more organised under the local wind"
+        wind_quality, wind_strength, wind_feel = "clean", "light" if wind_speed < 5 else "moderate" if wind_speed < 8 else "fresh/strong", "cleaner and more organised under the local wind"
     else:
-        wind_quality, wind_feel = "messy", "messy and broken up by the local wind"
+        wind_quality, wind_strength, wind_feel = "messy", "light" if wind_speed < 5 else "moderate" if wind_speed < 8 else "fresh/strong", "messy and broken up by the local wind"
+
+    tide_feelings = {
+        "rising": "gathering and filling on a rising tide",
+        "falling": "releasing and opening as the tide falls",
+        "high": "full and briefly suspended near high water",
+        "low": "drawn back and exposed near low water",
+        "unavailable": "without a current tidal reading",
+    }
+    next_time_local = None
+    if next_tide_time is not None and not pd.isna(next_tide_time):
+        next_time_local = pd.Timestamp(next_tide_time).tz_convert("Australia/Sydney").isoformat()
 
     return {
         "location": location, "valid_time_utc": str(pd.Timestamp(row["valid_time_utc"])),
@@ -195,16 +253,37 @@ def interpret_conditions(row):
         "wave_direction": None if pd.isna(wave_direction) else compass_direction(wave_direction),
         "wind_speed_m_s": round(wind_speed, 1), "wind_direction": compass_direction(wind_direction),
         "wind_direction_deg": round(wind_direction), "wind_quality": wind_quality,
+        "wind_strength": wind_strength,
         "clean_wind_rule": SPOT_RULES[location]["label"], "ocean_mood": mood,
+        "size_band": size_band, "period_band": period_band,
+        "trend": str(row.get("trend", "unknown")),
         "height_feel": height_feel, "period_feel": period_feel,
-        "ocean_feeling": f"{height_feel}; {period_feel}; {wind_feel}",
+        "tide_height_m": None if pd.isna(tide_height) else round(tide_height, 2),
+        "tide_state": tide_state, "tide_feeling": tide_feelings.get(tide_state, tide_feelings["unavailable"]),
+        "next_tide_type": next_tide_type, "next_tide_time_local": next_time_local,
+        "next_tide_height_m": None if next_tide_height is None or pd.isna(next_tide_height) else round(float(next_tide_height), 2),
+        "tide_station": row.get("tide_station"),
+        "ocean_feeling": f"{height_feel}; {period_feel}; {wind_feel}; {tide_feelings.get(tide_state, tide_feelings['unavailable'])}",
     }
+
+
+def add_forecast_trends(forecast):
+    """Infer a cautious 6-hour swell trend from consecutive model guidance."""
+    data = forecast.copy()
+    data["valid_time_utc"] = pd.to_datetime(data["valid_time_utc"], utc=True)
+    data = data.sort_values(["location", "valid_time_utc"])
+    future_height = data.groupby("location")["wave_height_m"].shift(-2)
+    change = future_height - data["wave_height_m"]
+    data["trend"] = "steady"
+    data.loc[change > 0.12, "trend"] = "rising"
+    data.loc[change < -0.12, "trend"] = "easing"
+    data.loc[future_height.isna(), "trend"] = "unknown"
+    return data
 
 
 def current_rows(forecast):
     """Return the forecast row closest to now for each location."""
-    data = forecast.copy()
-    data["valid_time_utc"] = pd.to_datetime(data["valid_time_utc"], utc=True)
+    data = add_forecast_trends(forecast)
     data["distance_from_now"] = (data["valid_time_utc"] - pd.Timestamp.now(tz="UTC")).abs()
     return data.loc[data.groupby("location")["distance_from_now"].idxmin()].drop(columns="distance_from_now")
 
@@ -269,8 +348,7 @@ def _future_cosmic_context(cosmic, date, sign):
 
 def generate_future_horoscopes(forecast, cosmic):
     """Choose the best combined surf/cosmic day in the next fortnight for every sign."""
-    data = forecast.copy()
-    data["valid_time_utc"] = pd.to_datetime(data["valid_time_utc"], utc=True)
+    data = add_forecast_trends(forecast)
     local = data["valid_time_utc"].dt.tz_convert(ZoneInfo("Australia/Sydney"))
     data["local_date"] = local.dt.date.astype(str)
     data["local_hour"] = local.dt.hour
@@ -314,9 +392,11 @@ def _rng(conditions, sign, cosmic_date=""):
     return random.Random(int.from_bytes(digest[:8], "big"))
 
 
-def _cosmic_line(sign, cosmic):
+def _cosmic_line(sign, cosmic, conditions):
     moon = cosmic["moon"]
     illumination = moon.get("illumination")
+    if isinstance(illumination, (int, float)) and illumination > 1:
+        illumination /= 100
     lit = f", {illumination:.0%} illuminated" if isinstance(illumination, (int, float)) else ""
     sign_data = cosmic.get("signs", {}).get(sign, {})
     lead = sign_data.get("lead_event")
@@ -325,9 +405,15 @@ def _cosmic_line(sign, cosmic):
         lead_text = f" Through {sign}, the particular current is {lead}."
     else:
         lead_text = f" Through {sign}, that wider sky meets your own elemental rhythm."
+    tide_bridge = {
+        "rising": "At the shoreline, the rising water gives the Moon's physical rhythm a gathering form.",
+        "falling": "At the shoreline, the falling water gives the Moon's physical rhythm a releasing form.",
+        "high": "At the shoreline, high water holds the Moon's physical rhythm at a turning point.",
+        "low": "At the shoreline, low water reveals the Moon's physical rhythm at a turning point.",
+    }.get(conditions.get("tide_state"), "")
     return (f"A {moon['phase_name']} Moon in {moon['sign']}{lit} sets the inner tide, "
             f"while the Sun moves through {cosmic['sun'].get('sign', 'the current season')}."
-            f"{lead_text}")
+            f"{lead_text} {tide_bridge}".strip())
 
 
 def generate_spot_horoscopes(conditions, cosmic):
@@ -337,20 +423,37 @@ def generate_spot_horoscopes(conditions, cosmic):
                f"The {conditions['wind_direction']} wind leaves the surface "
                f"{conditions['wind_quality']}. Overall, the ocean feels "
                f"{conditions['ocean_feeling']}.")
+    if conditions.get("next_tide_time_local"):
+        next_time = pd.Timestamp(conditions["next_tide_time_local"]).strftime("%I:%M %p").lstrip("0")
+        summary += (f" The tide is {conditions['tide_state']} at "
+                    f"{conditions['tide_height_m']:.1f} m, heading toward "
+                    f"{conditions['next_tide_type']} water around {next_time.lower()}.")
     values = {"location": conditions["location"], "mood": conditions["ocean_mood"],
               "hs": conditions["wave_height_m"], "period": conditions["primary_period_s"],
               "height_feel": conditions["height_feel"], "energy": conditions["period_feel"],
               "wind_dir": conditions["wind_direction"],
-              "wind_speed": conditions["wind_speed_m_s"]}
+              "wind_speed": conditions["wind_speed_m_s"],
+              "tide_height": conditions.get("tide_height_m")}
     reports = []
+    used_style_sentences = set()
     for sign in STAR_SIGNS:
         rng = _rng(conditions, sign, cosmic.get("date", ""))
         gift, lesson, actions = SIGN_VOICES[sign]
-        cosmic_alignment = _cosmic_line(sign, cosmic)
-        reading = " ".join((rng.choice(LOCATION_OPENINGS[conditions["location"]]).format(**values),
-                            rng.choice(FEELING_LINES).format(**values),
-                            rng.choice(WIND_LINES[conditions["wind_quality"]]).format(**values),
-                            f"Your {gift} is useful here. {lesson}"))
+        cosmic_alignment = _cosmic_line(sign, cosmic, conditions)
+        opening = rng.choice(LOCATION_OPENINGS[conditions["location"]]).format(**values)
+        height_line = rng.choice(EAST_COAST_HEIGHT_LINES[conditions["size_band"]]).format(**values)
+        period_line = rng.choice(EAST_COAST_PERIOD_LINES[conditions["period_band"]]).format(**values)
+        wind_line = rng.choice(WIND_LINES[conditions["wind_quality"]]).format(**values)
+        tide_line = rng.choice(TIDE_LINES.get(conditions["tide_state"], TIDE_LINES["unavailable"])).format(**values)
+        style_line = retrieve_style_line(conditions, sign, "surf", used_style_sentences)
+        structures = (
+            (opening, height_line, period_line, wind_line, tide_line, style_line),
+            (style_line, opening, wind_line, tide_line, height_line, period_line),
+            (opening, wind_line, height_line, tide_line, style_line, period_line),
+            (opening, period_line, style_line, wind_line, tide_line, height_line),
+        )
+        surf_lines = [line for line in rng.choice(structures) if line]
+        reading = " ".join((*surf_lines, f"Your {gift} is useful here. {lesson}"))
         subject = rng.choice(
             HEADLINE_SUBJECTS[conditions["location"]][conditions["wind_quality"]]
         ).format(mood=conditions["ocean_mood"].title())
@@ -387,6 +490,7 @@ def generate_all_horoscopes(forecast, output_dir="output", cosmic_context=None):
     metadata = {"generated_at_utc": datetime.now(timezone.utc).isoformat(),
                 "generator": "surf templates + CosmyDay daily astrology v2",
                 "astrology_source": cosmic_context.get("source"),
+                "tide_source": "Bureau of Meteorology high/low predictions; display heights interpolated",
                 "cosmic_context": cosmic_context, "locations": list(reports)}
     (output_dir / "surf_horoscope_run.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     return reports

@@ -16,13 +16,16 @@ from astrology_context import fetch_cosmic_context
 from surf_horoscope import (
     current_rows, generate_all_horoscopes, generate_future_horoscopes, interpret_conditions,
 )
+from tide_forecast import attach_tides, fetch_tide_events, write_tide_events
 
 DESIGN_DIR = Path(__file__).parent / "surf-horoscopes-sample"
 
 
-def render_site(forecast, destination="site"):
+def render_site(forecast, destination="site", demo=False):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
+    tide_events = fetch_tide_events(forecast, demo=demo)
+    forecast = attach_tides(forecast, tide_events)
     cosmic = fetch_cosmic_context(future_days=14)
     reports = generate_all_horoscopes(forecast, destination / "data", cosmic)
     futures = generate_future_horoscopes(forecast, cosmic)
@@ -36,7 +39,7 @@ def render_site(forecast, destination="site"):
 
     for name in ("styles.css", "app.js", "favicon.svg", "og.png"):
         shutil.copy2(DESIGN_DIR / name, destination / name)
-    make_forecast_charts(forecast, destination, cosmic)
+    make_forecast_charts(forecast, destination, cosmic, tide_events)
 
     template = (DESIGN_DIR / "index.html").read_text(encoding="utf-8")
     data_script = (
@@ -56,6 +59,7 @@ def render_site(forecast, destination="site"):
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     forecast.to_csv(destination / "data" / "fourteen_day_forecast.csv", index=False)
+    write_tide_events(tide_events, destination / "data")
     return destination / "index.html"
 
 
@@ -86,4 +90,4 @@ if __name__ == "__main__":
     else:
         from gfs_wave_current import forecast_conditions
         data = forecast_conditions()
-    print(f"Built {render_site(data, args.destination)}")
+    print(f"Built {render_site(data, args.destination, demo=args.demo)}")
