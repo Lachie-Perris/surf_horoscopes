@@ -14,7 +14,6 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from astrology_context import fetch_cosmic_context
-from surf_style_library import retrieve_style_line
 
 STAR_SIGNS = ("Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra",
               "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces")
@@ -166,8 +165,6 @@ class Horoscope:
     sign: str
     headline: str
     reading: str
-    surf_intention: str
-    cosmic_alignment: str
 
 
 @dataclass
@@ -392,28 +389,67 @@ def _rng(conditions, sign, cosmic_date=""):
     return random.Random(int.from_bytes(digest[:8], "big"))
 
 
-def _cosmic_line(sign, cosmic, conditions):
-    moon = cosmic["moon"]
-    illumination = moon.get("illumination")
-    if isinstance(illumination, (int, float)) and illumination > 1:
-        illumination /= 100
-    lit = f", {illumination:.0%} illuminated" if isinstance(illumination, (int, float)) else ""
-    sign_data = cosmic.get("signs", {}).get(sign, {})
-    lead = sign_data.get("lead_event")
-    if lead:
-        lead = re.sub(r"\s*\[([^]]+)\]", r", currently \1", lead).rstrip(".").lower()
-        lead_text = f" Through {sign}, the particular current is {lead}."
+def _sky_feeling(sign, cosmic):
+    """Translate sky context into a short imaginative cue, not a separate report."""
+    moon = cosmic.get("moon", {})
+    phase = str(moon.get("phase_name") or "changing").lower()
+    moon_sign = moon.get("sign")
+    if moon_sign and moon_sign != "the night sky":
+        cue = f"the {phase} Moon in {moon_sign}"
     else:
-        lead_text = f" Through {sign}, that wider sky meets your own elemental rhythm."
-    tide_bridge = {
-        "rising": "At the shoreline, the rising water gives the Moon's physical rhythm a gathering form.",
-        "falling": "At the shoreline, the falling water gives the Moon's physical rhythm a releasing form.",
-        "high": "At the shoreline, high water holds the Moon's physical rhythm at a turning point.",
-        "low": "At the shoreline, low water reveals the Moon's physical rhythm at a turning point.",
-    }.get(conditions.get("tide_state"), "")
-    return (f"A {moon['phase_name']} Moon in {moon['sign']}{lit} sets the inner tide, "
-            f"while the Sun moves through {cosmic['sun'].get('sign', 'the current season')}."
-            f"{lead_text} {tide_bridge}".strip())
+        cue = "the changing Moon"
+    lead = cosmic.get("signs", {}).get(sign, {}).get("lead_event")
+    if lead:
+        # Keep the supplied aspect recognizable, but strip timing/status metadata.
+        lead = re.sub(r"\s*\[[^]]+\]", "", str(lead)).strip(" .")
+        lead = re.sub(r"\s+", " ", lead)
+        if len(lead.split()) <= 10:
+            return cue, lead[0].lower() + lead[1:]
+    return cue, None
+
+
+def _integrated_reading(conditions, cosmic, sign, rng, gift, lesson, action, daily_tip=None):
+    """One paragraph in which sky, physical tide and surf affect one felt moment."""
+    sky, aspect = _sky_feeling(sign, cosmic)
+    mood = conditions["ocean_mood"]
+    rhythm = {
+        "short": "quick, closely packed lines",
+        "medium": "a workable pulse",
+        "long": "long lines with room between sets",
+    }[conditions["period_band"]]
+    surface = {
+        "light": "an open, barely textured face",
+        "clean": "a clean, groomed face",
+        "messy": "a scattered, wind-ruffled face",
+    }[conditions["wind_quality"]]
+    tide = {
+        "rising": "gathers toward high water",
+        "falling": "draws away and exposes the shoreline",
+        "high": "holds near high water",
+        "low": "pauses near low water",
+        "unavailable": "moves through its own rhythm",
+    }.get(conditions.get("tide_state"), "moves through its own rhythm")
+    location_feel = (
+        "the water along the eastern beach" if conditions["location"] == "Bondi Beach"
+        else "the water around the headland and bay"
+    )
+    sky_clause = f"Under {sky}"
+    if aspect:
+        sky_clause += f", with {aspect} colouring your outlook"
+    beginnings = (
+        f"{sky_clause}, {location_feel} feels {mood}, carrying {rhythm} beneath {surface} as the tide {tide}.",
+        f"As the tide {tide}, {location_feel} feels {mood} beneath {sky}, carrying {rhythm} under {surface} and inviting you to read the ocean through your own lens.",
+    )
+    sign_turns = (
+        f"For {sign}, {gift} helps you feel the difference between a wave worth following and a moment worth leaving alone; {lesson[0].lower() + lesson[1:]}",
+        f"Your {gift} finds its place in that changing water: {lesson[0].lower() + lesson[1:]}"
+    )
+    if daily_tip:
+        tip = str(daily_tip).strip().rstrip(".")
+        closing = f"Let that lesson travel beyond the water: {tip[0].lower() + tip[1:]}."
+    else:
+        closing = f"Let the session invite you to {action.rstrip('.').lower()}."
+    return f"{rng.choice(beginnings)} {rng.choice(sign_turns)} {closing}"
 
 
 def generate_spot_horoscopes(conditions, cosmic):
@@ -428,39 +464,19 @@ def generate_spot_horoscopes(conditions, cosmic):
         summary += (f" The tide is {conditions['tide_state']} at "
                     f"{conditions['tide_height_m']:.1f} m, heading toward "
                     f"{conditions['next_tide_type']} water around {next_time.lower()}.")
-    values = {"location": conditions["location"], "mood": conditions["ocean_mood"],
-              "hs": conditions["wave_height_m"], "period": conditions["primary_period_s"],
-              "height_feel": conditions["height_feel"], "energy": conditions["period_feel"],
-              "wind_dir": conditions["wind_direction"],
-              "wind_speed": conditions["wind_speed_m_s"],
-              "tide_height": conditions.get("tide_height_m")}
     reports = []
-    used_style_sentences = set()
     for sign in STAR_SIGNS:
         rng = _rng(conditions, sign, cosmic.get("date", ""))
         gift, lesson, actions = SIGN_VOICES[sign]
-        cosmic_alignment = _cosmic_line(sign, cosmic, conditions)
-        opening = rng.choice(LOCATION_OPENINGS[conditions["location"]]).format(**values)
-        height_line = rng.choice(EAST_COAST_HEIGHT_LINES[conditions["size_band"]]).format(**values)
-        period_line = rng.choice(EAST_COAST_PERIOD_LINES[conditions["period_band"]]).format(**values)
-        wind_line = rng.choice(WIND_LINES[conditions["wind_quality"]]).format(**values)
-        tide_line = rng.choice(TIDE_LINES.get(conditions["tide_state"], TIDE_LINES["unavailable"])).format(**values)
-        style_line = retrieve_style_line(conditions, sign, "surf", used_style_sentences)
-        structures = (
-            (opening, height_line, period_line, wind_line, tide_line, style_line),
-            (style_line, opening, wind_line, tide_line, height_line, period_line),
-            (opening, wind_line, height_line, tide_line, style_line, period_line),
-            (opening, period_line, style_line, wind_line, tide_line, height_line),
+        api_tip = cosmic.get("signs", {}).get(sign, {}).get("daily_tip")
+        reading = _integrated_reading(
+            conditions, cosmic, sign, rng, gift, lesson, rng.choice(actions), api_tip
         )
-        surf_lines = [line for line in rng.choice(structures) if line]
-        reading = " ".join((*surf_lines, f"Your {gift} is useful here. {lesson}"))
         subject = rng.choice(
             HEADLINE_SUBJECTS[conditions["location"]][conditions["wind_quality"]]
         ).format(mood=conditions["ocean_mood"].title())
         headline = HEADLINE_PATTERNS[sign].format(subject=subject)
-        api_tip = cosmic.get("signs", {}).get(sign, {}).get("daily_tip")
-        intention = api_tip or (rng.choice(actions).capitalize() + ".")
-        reports.append(Horoscope(sign, headline, reading, intention, cosmic_alignment))
+        reports.append(Horoscope(sign, headline, reading))
     return SpotHoroscopes(conditions["location"], summary, reports)
 
 
@@ -468,9 +484,7 @@ def _as_markdown(report, conditions):
     lines = [f"# {report.location} surf horoscopes", "",
              f"*Conditions valid {conditions['valid_time_utc']}*", "", report.conditions_summary, ""]
     for item in report.horoscopes:
-        lines += [f"## {item.sign} — {item.headline}", "", f"*{item.cosmic_alignment}*", "",
-                  item.reading, "",
-                  f"**Surf intention:** {item.surf_intention}", ""]
+        lines += [f"## {item.sign} — {item.headline}", "", item.reading, ""]
     return "\n".join(lines)
 
 

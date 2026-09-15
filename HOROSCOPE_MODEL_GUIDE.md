@@ -48,3 +48,12 @@ Treat the tide as physical forecast context first and astrological imagery secon
   port and data provenance in the structured conditions even when the prose is spare.
 - Tide does not make unsafe surf safe. Avoid navigation, swimming-safety or exact
   breaking-wave claims.
+
+## Output structure
+
+Each star sign must receive one headline and one continuous paragraph. The paragraph
+should weave the sky, physical tide, surface quality and swell rhythm into a single
+description of how the ocean may feel to that sign. Do not render a separate cosmic
+summary, surf report, tip, mantra or blockquote. Avoid listing forecast inputs in prose;
+translate them into felt qualities and let the sign-specific advice arise from the same
+ocean moment.
