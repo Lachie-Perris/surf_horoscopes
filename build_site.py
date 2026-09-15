@@ -55,6 +55,10 @@ def render_site(forecast, destination="site", demo=False):
     (destination / "data.html").write_text(
         data_page.replace("21 AUG 2026", generated.upper()), encoding="utf-8"
     )
+    about_page = (DESIGN_DIR / "about.html").read_text(encoding="utf-8")
+    (destination / "about.html").write_text(
+        about_page.replace("21 AUG 2026", generated.upper()), encoding="utf-8"
+    )
     (destination / "data" / "forecast.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
     )

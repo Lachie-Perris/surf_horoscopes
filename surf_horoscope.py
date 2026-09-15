@@ -390,7 +390,7 @@ def _rng(conditions, sign, cosmic_date=""):
 
 
 def _sky_feeling(sign, cosmic):
-    """Translate sky context into a short imaginative cue, not a separate report."""
+    """Translate sky context into a short tone cue, not a list of placements."""
     moon = cosmic.get("moon", {})
     phase = str(moon.get("phase_name") or "changing").lower()
     moon_sign = moon.get("sign")
@@ -398,58 +398,116 @@ def _sky_feeling(sign, cosmic):
         cue = f"the {phase} Moon in {moon_sign}"
     else:
         cue = "the changing Moon"
-    lead = cosmic.get("signs", {}).get(sign, {}).get("lead_event")
-    if lead:
-        # Keep the supplied aspect recognizable, but strip timing/status metadata.
-        lead = re.sub(r"\s*\[[^]]+\]", "", str(lead)).strip(" .")
-        lead = re.sub(r"\s+", " ", lead)
-        if len(lead.split()) <= 10:
-            return cue, lead[0].lower() + lead[1:]
-    return cue, None
+    source = " ".join((str(cosmic.get("signs", {}).get(sign, {}).get("lead_event") or ""),
+                       str(moon_sign or ""))).lower()
+    for tokens, tone in (
+        (("mercury", "uranus"), "curious about patterns others might miss"),
+        (("scorpio", "pluto"), "alert to what lies beneath the surface"),
+        (("saturn", "capricorn"), "patient enough to let a pattern prove itself"),
+        (("mars", "aries"), "ready to act once the moment becomes clear"),
+        (("venus", "libra"), "sensitive to balance and timing"),
+        (("jupiter", "sagittarius"), "open to a wider view of the lineup"),
+    ):
+        if any(token in source for token in tokens):
+            return cue, tone
+    return cue, "more observant than forceful"
 
 
-def _integrated_reading(conditions, cosmic, sign, rng, gift, lesson, action, daily_tip=None):
-    """One paragraph in which sky, physical tide and surf affect one felt moment."""
-    sky, aspect = _sky_feeling(sign, cosmic)
-    mood = conditions["ocean_mood"]
-    rhythm = {
-        "short": "quick, closely packed lines",
-        "medium": "a workable pulse",
-        "long": "long lines with room between sets",
-    }[conditions["period_band"]]
+def _ocean_details(conditions, rng):
+    """Keep extreme size and two other salient physical details in the reading."""
+    size = {
+        "tiny": "There is little push in the water, so timing matters more than effort.",
+        "big": "Solid water is moving through, asking for careful decisions.",
+        "very_big": "The ocean carries consequential weight, demanding experience and restraint.",
+    }.get(conditions["size_band"])
     surface = {
-        "light": "an open, barely textured face",
-        "clean": "a clean, groomed face",
-        "messy": "a scattered, wind-ruffled face",
+        "light": ("The light breeze leaves the water open and easy to read.",
+                  "Little wind interferes with the shape arriving at the beach."),
+        "clean": ("The wind keeps the faces tidy and lets their shape show.",
+                  "The surface looks clean enough for the better lines to stand out."),
+        "messy": ("Wind breaks up the faces, and good shape appears only in brief windows.",
+                  "The surface is noisy, so a better-shaped wave may show itself only briefly."),
     }[conditions["wind_quality"]]
+    rhythm = {
+        "short": ("Short lines arrive close together, giving the ocean a restless tempo.",
+                  "There is little pause between the short-period lines today."),
+        "medium": ("The sets carry a workable rhythm, with enough pause to watch a bank settle.",
+                   "A steady pulse leaves enough time to read the next set."),
+        "long": ("Longer lines arrive with space between them and more time to organise.",
+                 "There is breathing room between the longer-period sets."),
+    }[conditions["period_band"]]
     tide = {
-        "rising": "gathers toward high water",
-        "falling": "draws away and exposes the shoreline",
-        "high": "holds near high water",
-        "low": "pauses near low water",
-        "unavailable": "moves through its own rhythm",
-    }.get(conditions.get("tide_state"), "moves through its own rhythm")
-    location_feel = (
-        "the water along the eastern beach" if conditions["location"] == "Bondi Beach"
-        else "the water around the headland and bay"
-    )
-    sky_clause = f"Under {sky}"
-    if aspect:
-        sky_clause += f", with {aspect} colouring your outlook"
-    beginnings = (
-        f"{sky_clause}, {location_feel} feels {mood}, carrying {rhythm} beneath {surface} as the tide {tide}.",
-        f"As the tide {tide}, {location_feel} feels {mood} beneath {sky}, carrying {rhythm} under {surface} and inviting you to read the ocean through your own lens.",
-    )
-    sign_turns = (
-        f"For {sign}, {gift} helps you feel the difference between a wave worth following and a moment worth leaving alone; {lesson[0].lower() + lesson[1:]}",
-        f"Your {gift} finds its place in that changing water: {lesson[0].lower() + lesson[1:]}"
-    )
-    if daily_tip:
-        tip = str(daily_tip).strip().rstrip(".")
-        closing = f"Let that lesson travel beyond the water: {tip[0].lower() + tip[1:]}."
+        "rising": "The rising tide adds a gathering feeling to the shoreline.",
+        "falling": "As the tide falls, the shoreline opens and the water feels more revealing.",
+        "high": "Near high water, the ocean feels full and briefly held.",
+        "low": "Near low water, more of the beach's underlying shape is exposed.",
+    }.get(conditions.get("tide_state"))
+    return [size or rng.choice(surface), rng.choice(rhythm), tide]
+
+
+def _sign_response(sign, conditions):
+    responses = {
+        "Aries": ("Your urge to commit is useful once the line becomes clear", "watch two sets before choosing your moment"),
+        "Taurus": ("Your patience suits a sea that rewards good timing", "settle on the bank with the most dependable shape"),
+        "Gemini": ("Your curiosity can spot a peak others miss", "give one bank time to reveal itself before moving again"),
+        "Cancer": ("Your sensitivity helps you notice quieter changes in the water", "turn that observation into one deliberate choice"),
+        "Leo": ("Your confidence belongs in a well-chosen line, not a hurried display", "let presence guide the session"),
+        "Virgo": ("Your eye for detail can separate real shape from surface noise", "refine your position without chasing perfection"),
+        "Libra": ("Your instinct for balance can find the meeting point between effort and ease", "share the peak and wait for the cleanest line"),
+        "Scorpio": ("Your focus is well suited to reading beneath the surface", "commit only after the ocean earns your trust"),
+        "Sagittarius": ("Your appetite for discovery can make an overlooked bank interesting", "explore after watching, with respect setting the boundary"),
+        "Capricorn": ("Your discipline can turn an inconsistent session into a useful one", "build the session around sound decisions"),
+        "Aquarius": ("Your independent eye may find value away from the obvious peak", "understand the usual line before trying a different one"),
+        "Pisces": ("Your feel for rhythm can tune into the pulse beneath the texture", "anchor intuition to what the sets show"),
+    }
+    strength, choice = responses[sign]
+    if conditions["wind_quality"] == "messy":
+        tension = "The temptation is to chase every cleaner patch, but the surface keeps changing."
+    elif conditions["period_band"] == "short":
+        tension = "The quick rhythm rewards attention, though reacting to every line will scatter it."
+    elif conditions["period_band"] == "long":
+        tension = "The quiet between sets may test your certainty, but it is part of the day's rhythm."
     else:
-        closing = f"Let the session invite you to {action.rstrip('.').lower()}."
-    return f"{rng.choice(beginnings)} {rng.choice(sign_turns)} {closing}"
+        tension = "There is no need to force the session before its pattern becomes clear."
+    return strength, choice, tension
+
+
+def _tip_theme(daily_tip):
+    """Use the theme of third-party advice without appending its full text."""
+    tip = str(daily_tip or "").lower()
+    if any(word in tip for word in ("question", "truth", "confus", "stuck")):
+        return "A better question may loosen something that has felt stuck elsewhere, too."
+    if any(word in tip for word in ("speak", "conversation", "communicat", "listen")):
+        return "The same care with timing may improve a conversation away from the beach."
+    if any(word in tip for word in ("rest", "slow", "pause", "patience")):
+        return "What you do not rush may become easier to understand later."
+    if any(word in tip for word in ("change", "new", "idea", "create")):
+        return "Leave room for one new idea, but let it take shape before acting on it."
+    return None
+
+
+
+
+def _natural_reading(conditions, cosmic, sign, rng, action, daily_tip=None):
+    """Use a small selection of observed conditions in one variable narrative."""
+    sky, tone = _sky_feeling(sign, cosmic)
+    details = _ocean_details(conditions, rng)
+    strength, choice, tension = _sign_response(sign, conditions)
+    sky_line = f"Under {sky}, you may feel {tone}."
+    choice_line = f"{strength}. Better to {choice}."
+    closing = _tip_theme(daily_tip)
+    structures = (
+        (details[0], details[1], tension, choice_line, details[2]),
+        (choice_line, details[0], tension, details[1], details[2]),
+        (details[0], sky_line, details[1], choice_line, details[2]),
+        (sky_line, details[0], details[1], tension, choice_line),
+    )
+    lines = [line for line in rng.choice(structures) if line]
+    if closing:
+        lines.append(closing)
+    elif action and rng.random() < .3:
+        lines.append(f"You might {action.rstrip('.').lower()}.")
+    return " ".join(lines)
 
 
 def generate_spot_horoscopes(conditions, cosmic):
@@ -469,9 +527,7 @@ def generate_spot_horoscopes(conditions, cosmic):
         rng = _rng(conditions, sign, cosmic.get("date", ""))
         gift, lesson, actions = SIGN_VOICES[sign]
         api_tip = cosmic.get("signs", {}).get(sign, {}).get("daily_tip")
-        reading = _integrated_reading(
-            conditions, cosmic, sign, rng, gift, lesson, rng.choice(actions), api_tip
-        )
+        reading = _natural_reading(conditions, cosmic, sign, rng, rng.choice(actions), api_tip)
         subject = rng.choice(
             HEADLINE_SUBJECTS[conditions["location"]][conditions["wind_quality"]]
         ).format(mood=conditions["ocean_mood"].title())
